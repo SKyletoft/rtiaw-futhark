@@ -14,10 +14,10 @@ struct Colour {
 }
 
 impl fmt::Display for Colour {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-	    let Colour { red, green, blue } = *self;
-            write!(f, "{red} {green} {blue}")
-    }
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let Colour { red, green, blue } = *self;
+		write!(f, "{red} {green} {blue}")
+	}
 }
 
 fn main() {
@@ -38,7 +38,7 @@ fn with_futhark() -> Result<Vec<Colour>, fut::Error> {
 	let res = ctx
 		.calc(height, width)?
 		.get()?
-		.chunks(3)
+		.chunks_exact(3)
 		.map(|arr| Colour {
 			red: arr[0],
 			green: arr[1],
