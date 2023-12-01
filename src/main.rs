@@ -2,8 +2,8 @@ use std::fmt;
 
 pub mod fut;
 
-const HEIGHT: usize = 512;
-const WIDTH: usize = 512;
+const HEIGHT: usize = 450;
+const WIDTH: usize = 800;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -36,7 +36,7 @@ fn with_futhark() -> Result<Vec<Colour>, fut::Error> {
 	let width = WIDTH as _;
 
 	let res = ctx
-		.calc(height, width)?
+		.calc(width, height)?
 		.get()?
 		.chunks_exact(3)
 		.map(|arr| Colour {
