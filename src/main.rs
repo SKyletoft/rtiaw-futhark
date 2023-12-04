@@ -2,8 +2,9 @@ use std::fmt;
 
 pub mod fut;
 
-const HEIGHT: usize = 450;
-const WIDTH: usize = 800;
+const RES: usize = 3;
+const HEIGHT: usize = 1440 / RES;
+const WIDTH: usize = 2560 / RES;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq)]

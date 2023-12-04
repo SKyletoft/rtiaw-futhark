@@ -16,5 +16,7 @@ def aspect_ratio w h = f32.i64 w / f32.i64 h
 
 entry calc (w: i64) (h: i64): [h * w * 3]u8 =
   -- colour_image w h
- create_image (trace [] (aspect_ratio w h)) w h
-  |> flatten_pixels
+  let circle = {pos = { x = 0, y = 0, z = -1}, radius = 0.5}
+  let scene = [circle]
+  in create_image (trace scene (aspect_ratio w h)) w h
+     |> flatten_pixels

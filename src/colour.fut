@@ -2,6 +2,7 @@ type Pixel = {r: u8, g: u8, b: u8}
 type PixelF32 = {r: f32, g: f32, b: f32}
 type Colour = {h: f32, s: f32, v: f32}
 
+def red: Pixel = {r = 255, g = 0, b = 0}
 def black: Pixel = {r = 0, g = 0, b = 0}
 def black_f32: PixelF32 = {r = 0, g = 0, b = 0}
 def black_image (h: i64) (w: i64): [h][w]Pixel =
@@ -65,10 +66,12 @@ def transform_pixel (w: f32) (h: f32): Pixel = {
 def create_image (f: f32 -> f32 -> Pixel) (w: i64) (h: i64): [h][w]Pixel =
   let row =
     iota w
-    |> map (\x -> x |> f32.i64 |> (/ (f32.i64 w)))
+    |> reverse
+    |> map (\x -> x |> f32.i64 |> (/ (f32.i64 w - 1)))
   let column =
     iota h
-    |> map (\x -> x |> f32.i64 |> (/ (f32.i64 h)))
+    |> reverse
+    |> map (\x -> x |> f32.i64 |> (/ (f32.i64 h - 1)))
   in row
      |> replicate h
      |> zip column
