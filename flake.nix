@@ -25,6 +25,8 @@
 						rustfmt
 						rust-analyzer
 					];
+					LIBOPENCL_HEADERS = "${pkgs.opencl-headers}";
+					LIBOPENCL_BIN = "${pkgs.ocl-icd}";
 				};
 			}
 		);
