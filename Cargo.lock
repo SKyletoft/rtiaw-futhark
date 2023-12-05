@@ -31,8 +31,7 @@ dependencies = [
 [[package]]
 name = "futhark-bindgen"
 version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dada7571baf191a2ea542e3f2c963f06ded32e03b3461a2f350cd3d3f01b575"
+source = "git+https://github.com/SKyletoft/futhark-bindgen.git#a3780c3d2c7049c74d51557693078d19728828f9"
 dependencies = [
  "cc",
  "serde",

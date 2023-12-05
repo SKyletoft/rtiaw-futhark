@@ -13,10 +13,7 @@
 				devShells.default = pkgs.mkShell {
 					nativeBuildInputs = with pkgs; [
 						futhark
-						intel-compute-runtime
-						opencl-headers
-						ocl-icd
-						intel-ocl
+						rocmPackages.clr
 						pkg-config
 
 						rustc
@@ -25,7 +22,7 @@
 						rustfmt
 						rust-analyzer
 					];
-					LIBOPENCL_HEADERS = "${pkgs.opencl-headers}";
+					ROCMCLR = "${pkgs.rocmPackages.clr}";
 					LIBOPENCL_BIN = "${pkgs.ocl-icd}";
 				};
 			}
