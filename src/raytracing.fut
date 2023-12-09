@@ -32,7 +32,7 @@ def ray_colour (scene: []Sphere) (ray: Ray): Pixel =
   let t = (ray_sphere_intersection ray) sphere
   in if t > 0
      then let normal = ((ray `at` t) `sub` sphere.pos) |> unit_vector
-          in to_colour <| ((normal `add` one) `div` 2)
+          in ((normal `add` one) `div` 2) |> to_colour
      else sky ray
 
 -- | 0..1 → -1..1
