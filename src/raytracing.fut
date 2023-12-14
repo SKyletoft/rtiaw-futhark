@@ -67,9 +67,7 @@ def ray_colour (scene: []Hittable) (ray: Ray): Pixel =
     case (#some _, #none)     -> l
     case (#none, #some _)     -> r
     case (#none, #none)       -> #none
-  let near = 0.01f32
-  let far = f32.inf
-  in match foldl' (\acc h -> ray_intersection (interval near far) ray h |> keep_closer acc)
+  in match foldl' (\acc h -> ray_intersection (interval 0.01 f32.inf) ray h |> keep_closer acc)
                   #none
                   scene
      case #some hit -> ((hit.normal `add` one) `div` 2) |> to_colour
