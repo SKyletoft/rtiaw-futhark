@@ -1,3 +1,5 @@
+import "../lib/github.com/diku-dk/cpprandom/random"
+
 import "vector"
 import "colour"
 import "option"
