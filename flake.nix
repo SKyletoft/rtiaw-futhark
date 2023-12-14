@@ -15,6 +15,7 @@
 						futhark
 						rocmPackages.clr
 						pkg-config
+						hyperfine
 
 						rustc
 						cargo
