@@ -3,5 +3,9 @@ fn main() {
 	println!("cargo:rerun-if-changed=src/colour.fut");
 	println!("cargo:rerun-if-changed=src/vector.fut");
 	println!("cargo:rerun-if-changed=src/raytracing.fut");
-	futhark_bindgen::build(futhark_bindgen::Backend::OpenCL, "src/lib.fut", "fut.rs");
+
+	#[cfg(debug_assertions)]
+	futhark_bindgen::build(futhark_bindgen::Backend::C, "src/lib.fut", "fut.rs");
+	#[cfg(not(debug_assertions))]
+	futhark_bindgen::build(futhark_bindgen::Backend::HIP, "src/lib.fut", "fut.rs");
 }
