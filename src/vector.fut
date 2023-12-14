@@ -26,6 +26,12 @@ def div (lhs: Vec3) (rhs: f32): Vec3 = {
     z = lhs.z / rhs
   }
 
+def neg (v: Vec3): Vec3 = {
+    x = -v.x,
+    y = -v.y,
+    z = -v.z
+  }
+  
 def length_squared (v: Vec3): f32 =
   v.x * v.x + v.y * v.y + v.z * v.z
 
