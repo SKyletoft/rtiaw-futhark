@@ -2,17 +2,18 @@ import "vector"
 import "raytracing"
 import "colour"
 
+import "../lib/github.com/diku-dk/cpprandom/random"
+module Rng    = minstd_rand
+type RngState = Rng.rng
+
 -- | Flatten a pixel to an array
-def pixel_to_arr (pixel: Pixel) = [pixel.r, pixel.g, pixel.b]
-
--- | Flatten an entire image to a byte array
-def flatten_pixels [w] [h] (pxs: [w][h]Pixel): [w * h * 3]u8 =
-  pxs
-  |> flatten
-  |> map pixel_to_arr
-  |> flatten
-
-def aspect_ratio w h = f32.i64 w / f32.i64 h
+def pixel_to_arr ({r, g, b}: Pixel): [3]u8 =
+  let f x =
+    x
+    |> f32.sqrt
+    |> (* 255.9999)
+    |> u8.f32
+  in [f r, f g, f b]
 
 entry calc (w: i64) (h: i64): [h * w * 3]u8 =
   let circle  = { pos = { x =  0, y =       0, z = -1 }, radius =  0.5 }
@@ -22,5 +23,23 @@ entry calc (w: i64) (h: i64): [h * w * 3]u8 =
 	      , #sphere circle2
 	      , #sphere circle3
 	      ]
-  in create_image (trace scene (aspect_ratio w h)) w h
-     |> flatten_pixels
+  let rng     = Rng.rng_from_seed [981, 345, 234, 897, 82734, 2346]
+  let rngs    = Rng.split_rng (w * h) rng
+  let samples = 2048
+
+  let pixel_coords: [h * w](i64, i64) =
+    let row =
+      iota h
+    let column =
+      iota w
+    in column
+      |> replicate h
+      |> zip row
+      |> map (\(i, js) -> map (\j -> (j, i)) js)
+      |> flatten
+
+  let f (x: i64) (y: i64): Pixel =
+    let idx = y + x * h
+    in draw_pixel samples rngs[idx] scene w h x y
+
+  in pixel_coords |> map (\(x, y) -> f x y |> pixel_to_arr) |> flatten

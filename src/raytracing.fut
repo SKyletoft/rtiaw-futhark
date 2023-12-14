@@ -10,6 +10,13 @@ type Sphere    = { pos: Vec3, radius: f32 }
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool }
 type Hittable  = #sphere Sphere
 
+module Rng    = minstd_rand
+type RngState = Rng.rng
+
+def to_colour ({x, y, z}: Vec3): Pixel =
+  { r = x, g = y, b = z }
+  |> sq_px
+
 def at (ray: Ray) (t: f32): Vec3 =
   ray.origin `add` (ray.dir `mul` t)
 
@@ -19,7 +26,7 @@ def set_face_normal (ray: Ray) (outward_normal: Vec3) (hr: HitRecord): HitRecord
     if front_face
     then outward_normal
     else neg outward_normal
-  in {pos = hr.pos, normal, t = hr.t, front_face}
+  in { pos = hr.pos, normal, t = hr.t, front_face }
 
 def hit_record (ray: Ray) (sphere: Sphere) (t: f32): HitRecord =
   let pos = ray `at` t
@@ -79,10 +86,38 @@ def ray_colour (scene: []Hittable) (ray: Ray): Pixel =
 def rescale (x: f32): f32 = x * 2 - 1
 
 def fire_ray fovy x y: Ray =
-  let x   = fovy * (-rescale x)
-  let y   = rescale y
+  let x   = fovy * rescale x
+  let y   = -rescale y
   let dir = unit_vector { x, y, z = -1 }
   in { origin, dir }
-				   
+
 def trace scene fovy x y: Pixel =
   fire_ray fovy x y |> ray_colour scene
+
+def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i64) (x: i64) (y: i64): Pixel =
+  let fovy = f32.i64 w / f32.i64 h
+  let x = f32.i64 x
+  let y = f32.i64 y
+  let w' = f32.i64 w
+  let h' = f32.i64 h
+  let s = f32.i64 samples
+
+  let remap v = (f32.u32 v) / (f32.u32 Rng.max) - 0.5
+
+  let combine {r = r1, g = g1, b = b1} {r = r2, g = g2, b = b2} =
+    { r = r1 + r2, g = g1 + g2, b = b1 + b2 }
+
+  let draw rng =
+    let (rng', dx) = Rng.rand rng
+    let (rng'', dy) = Rng.rand rng'
+    let x = (x + remap dx) / w'
+    let y = (y + remap dy) / h'
+    let new_col = trace scene fovy x y
+    in (rng'', new_col)
+
+  in iota (samples - 1)
+     |> foldl (\(rng, acc_col) _ ->
+		 let (rng', new_col) = draw rng
+		 in (rng', acc_col `combine` new_col))
+	      (draw rng)
+     |> (\(_, {r, g, b}) -> { r = r / s, g = g / s, b = b / s })

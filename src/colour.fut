@@ -1,17 +1,11 @@
-type Pixel = {r: u8, g: u8, b: u8}
-type PixelF32 = {r: f32, g: f32, b: f32}
+type Pixel = {r: f32, g: f32, b: f32}
 type Colour = {h: f32, s: f32, v: f32}
 
-def red: Pixel = {r = 255, g = 0, b = 0}
+def red: Pixel = {r = 1, g = 0, b = 0}
 def black: Pixel = {r = 0, g = 0, b = 0}
-def black_f32: PixelF32 = {r = 0, g = 0, b = 0}
-def black_image (h: i64) (w: i64): [h][w]Pixel =
-  black
-  |> replicate w
-  |> replicate h
 
 -- According to chatgpt
-def hsv_to_rgb(colour: Colour): PixelF32 =
+def hsv_to_rgb(colour: Colour): Pixel =
   let {h, s, v} = colour
   let c = v * s
   let hp = h / 60.0
@@ -28,39 +22,31 @@ def hsv_to_rgb(colour: Colour): PixelF32 =
   in { r = r + m, g = g + m, b = b + m }
 
 def average_two_colours (l: Pixel) (r: Pixel): Pixel =
-  let sq x = let x' = f32.u8 x in x' * x'
-  let rms x y = ((sq x + sq y) / 2) |> f32.sqrt |> u8.f32
+  let sq x = x * x
+  let rms x y = ((sq x + sq y) / 2)
   in { r = rms l.r r.r
      , g = rms l.g r.g
      , b = rms l.b r.b
      }
 
-def average_colours (ps: []Pixel): Pixel =
+def slet {r, g, b} =
   let sq x = let x' = f32.u8 x in x' * x'
-  let sq_px {r, g, b} =
-    {r = sq r, b = sq b, g = sq g}
-  let add_px l r =
-    {r = r.r + l.r, g = r.g + l.g, b = r.b + l.b}
-  let sqrt_u8 x = x |> f32.sqrt |> u8.f32
-  let sqrt_px {r, g, b} =
-    { r = sqrt_u8 r , g = sqrt_u8 g , b = sqrt_u8 b}
-  in ps
-     |> map sq_px
-     |> reduce_comm add_px black_f32
-     |> sqrt_px
+  in { r = sq r, b = sq b, g = sq g }
 
--- | Convert a floating value in range 0..1 to a 0..255 byte value
-def lin_to_byte (x: f32): u8 =
-  x
-  |> (* 255.9999)
-  |> u8.f32
+def sq_px ({r, g, b}: Pixel): Pixel =
+  { r = r * r, g = g * g, b = b * b }
 
--- | Gradient function. 0 <= h, w, lim < 1
-def transform_pixel (w: f32) (h: f32): Pixel = {
-  r = lin_to_byte w,
-  g = lin_to_byte h,
-  b = 0
-}
+def add_px (l: Pixel) (r: Pixel) =
+  { r = r.r + l.r, g = r.g + l.g, b = r.b + l.b }
+
+def sqrt_px ({r, g, b}: Pixel): Pixel =
+  { r = f32.sqrt r , g = f32.sqrt g , b = f32.sqrt b }
+
+def average_colours (ps: []Pixel): Pixel =
+  ps
+  |> map sq_px
+  |> reduce_comm add_px black
+  |> sqrt_px
 
 -- | Take a function to generate a colour from pixel coordinates and create a full image from it
 def create_image (f: f32 -> f32 -> Pixel) (w: i64) (h: i64): [h][w]Pixel =
@@ -76,7 +62,3 @@ def create_image (f: f32 -> f32 -> Pixel) (w: i64) (h: i64): [h][w]Pixel =
      |> replicate h
      |> zip column
      |> map (\(i, js) -> map (`f` i) js)
-
--- | Generate an image from `transform_pixel`
-def colour_image (w: i64) (h: i64): [h][w]Pixel =
-  create_image transform_pixel w h

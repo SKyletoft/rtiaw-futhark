@@ -1,5 +1,3 @@
-import "colour"
-
 type Vec3 = {x: f32, y: f32, z: f32}
 
 def add (lhs: Vec3) (rhs: Vec3): Vec3 = {
@@ -51,9 +49,3 @@ def unit_vector (v: Vec3): Vec3 =
   v `div` length v
 
 def origin: Vec3 = { x = 0, y = 0, z = 0 }
-
-def to_colour (v: Vec3): Pixel = {
-    r = lin_to_byte v.x,
-    g = lin_to_byte v.y,
-    b = lin_to_byte v.z
-  }
