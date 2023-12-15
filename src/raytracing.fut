@@ -5,10 +5,31 @@ import "tuple"
 import "interval"
 import "random"
 
+type Metal    = {}
+type Diffuse  = { albedo: Pixel }
+type Material = #metal Metal | #diffuse Diffuse
+
 type Ray       = { origin: Vec3, dir: Vec3 }
-type Sphere    = { pos: Vec3, radius: f32 }
-type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool }
+type Sphere    = { pos: Vec3, radius: f32, mat: Material }
+type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Material }
 type Hittable  = #sphere Sphere
+
+def scatter_metal (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Metal): (RngState, Ray) =
+  let (rng', dir) =
+    second (hr.normal `add`) (random_unit_vec3 rng)
+  let ray' = { origin = hr.pos, dir }
+  in (rng', ray')
+
+def scatter_diffuse (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Diffuse): (RngState, Ray) =
+  let (rng', dir) =
+    second (hr.normal `add`) (random_unit_vec3 rng)
+  let ray' = { origin = hr.pos, dir }
+  in (rng', ray')
+
+def scatter (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Material): (RngState, Ray) =
+  match mat
+  case #metal m -> scatter_metal rng ray hr m
+  case #diffuse m -> scatter_diffuse rng ray hr m
 
 def to_colour ({x, y, z}: Vec3): Pixel =
   { r = x, g = y, b = z }
@@ -23,12 +44,12 @@ def set_face_normal (ray: Ray) (outward_normal: Vec3) (hr: HitRecord): HitRecord
     if front_face
     then outward_normal
     else neg outward_normal
-  in { pos = hr.pos, normal, t = hr.t, front_face }
+  in { pos = hr.pos, normal, t = hr.t, front_face, mat = hr.mat }
 
 def hit_record (ray: Ray) (sphere: Sphere) (t: f32): HitRecord =
   let pos = ray `at` t
   let n   = (pos `sub` sphere.pos) `div` sphere.radius
-  in { t, pos, normal = n, front_face = false} |> set_face_normal ray n
+  in { t, pos, normal = n, front_face = false, mat = sphere.mat } |> set_face_normal ray n
 
 def ray_sphere_hit (ray: Ray) (sphere: Sphere) (t: Interval): Option HitRecord =
   let oc     = ray.origin `sub` sphere.pos
@@ -51,7 +72,7 @@ def ray_sphere_hit (ray: Ray) (sphere: Sphere) (t: Interval): Option HitRecord =
 
 def ray_intersection (t: Interval) (ray: Ray) (hittable: Hittable): Option HitRecord =
   match hittable
-    case #sphere s -> ray_sphere_hit ray s t
+  case #sphere s -> ray_sphere_hit ray s t
 
 def sky (ray: Ray): Vec3 =
   let a	    = (-(unit_vector ray.dir).y + 1.0) / 2.0
@@ -70,13 +91,11 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
     match foldl (\acc h -> ray_intersection (interval 0.01 f32.inf) ray h |> keep_closer acc)
                  #none
                  scene
-     case #some hit ->
-        let (rng_l', dir) =
-          second (hit.normal `add`) (random_unit_vec3 rng_l)
-        let ray' = { origin = hit.pos, dir }
-        in (rng_l', ray', true, l)
-     case #none ->
-       (rng, ray, false, l)
+    case #some hit ->
+      let (rng_l', ray') = scatter rng_l ray hit hit.mat
+      in (rng_l', ray', true, l)
+    case #none ->
+      (rng, ray, false, l)
   let (rng', final_ray, stuck, loops) =
     loop (rng, ray, continue, loops) = (rng, ray, true, -1)
     while continue && loops < 10
@@ -122,7 +141,7 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
 
   in iota (samples - 1)
      |> foldl (\(rng, acc_col) _ ->
-		 let (rng', new_col) = draw rng
-		 in (rng', acc_col `combine` new_col))
-	      (draw rng)
+                 let (rng', new_col) = draw rng
+                 in (rng', acc_col `combine` new_col))
+              (draw rng)
      |> (\(_, {r, g, b}) -> { r = r / s, g = g / s, b = b / s })
