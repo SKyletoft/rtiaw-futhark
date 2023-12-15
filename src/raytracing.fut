@@ -1,17 +1,14 @@
-import "../lib/github.com/diku-dk/cpprandom/random"
-
 import "vector"
 import "colour"
 import "option"
+import "tuple"
 import "interval"
+import "random"
 
 type Ray       = { origin: Vec3, dir: Vec3 }
 type Sphere    = { pos: Vec3, radius: f32 }
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool }
 type Hittable  = #sphere Sphere
-
-module Rng    = minstd_rand
-type RngState = Rng.rng
 
 def to_colour ({x, y, z}: Vec3): Pixel =
   { r = x, g = y, b = z }
@@ -62,8 +59,6 @@ def sky (ray: Ray): Pixel =
   let blue = { x = 0.5, y = 0.7, z = 1.0 }
   in ((blue `mul` (1 - a)) `add` (white `mul` a)) |> to_colour
 
-let one: Vec3 = { x = 1, y = 1, z = 1 }
-
 def foldl' [n] 'a 'b (f: Option a -> b -> Option a) (acc: Option a) (xs: [n]b): Option a =
   if n == 0
   then #none
@@ -91,8 +86,8 @@ def fire_ray fovy x y: Ray =
   let dir = unit_vector { x, y, z = -1 }
   in { origin, dir }
 
-def trace scene fovy x y: Pixel =
-  fire_ray fovy x y |> ray_colour scene
+def trace (rng: RngState) (scene: []Hittable) (fovy: f32) (x: f32) (y: f32): (RngState, Pixel) =
+  (rng, fire_ray fovy x y |> ray_colour scene)
 
 def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i64) (x: i64) (y: i64): Pixel =
   let fovy = f32.i64 w / f32.i64 h
@@ -112,8 +107,8 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
     let (rng'', dy) = Rng.rand rng'
     let x = (x + remap dx) / w'
     let y = (y + remap dy) / h'
-    let new_col = trace scene fovy x y
-    in (rng'', new_col)
+    let (rng''', new_col) = trace rng'' scene fovy x y
+    in (rng''', new_col)
 
   in iota (samples - 1)
      |> foldl (\(rng, acc_col) _ ->

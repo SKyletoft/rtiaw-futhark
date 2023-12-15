@@ -1,10 +1,7 @@
 import "vector"
 import "raytracing"
 import "colour"
-
-import "../lib/github.com/diku-dk/cpprandom/random"
-module Rng    = minstd_rand
-type RngState = Rng.rng
+import "random"
 
 -- | Flatten a pixel to an array
 def pixel_to_arr ({r, g, b}: Pixel): [3]u8 =
