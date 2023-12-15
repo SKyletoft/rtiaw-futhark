@@ -44,38 +44,48 @@ def ray_sphere_hit (ray: Ray) (sphere: Sphere) (t: Interval): Option HitRecord =
 
   in if disc < 0 then #none
      else if !(t `surrounds` root)
-     then if !(t `surrounds` root')
-          then #none
-          else #some (hit_record ray sphere root')
-     else #some (hit_record ray sphere root)
+          then if !(t `surrounds` root')
+               then #none
+               else #some (hit_record ray sphere root')
+          else #some (hit_record ray sphere root)
 
 def ray_intersection (t: Interval) (ray: Ray) (hittable: Hittable): Option HitRecord =
   match hittable
     case #sphere s -> ray_sphere_hit ray s t
 
-def sky (ray: Ray): Pixel =
-  let a = -(ray.dir.y) * 0.8
-  let white = { x = 1, y = 1, z = 1 }
-  let blue = { x = 0.5, y = 0.7, z = 1.0 }
-  in ((blue `mul` (1 - a)) `add` (white `mul` a)) |> to_colour
+def sky (ray: Ray): Vec3 =
+  let a	    = (-(unit_vector ray.dir).y + 1.0) / 2.0
+  let white = one
+  let blue  = sky_blue
+  in ((blue `mul` (1 - a)) `add` (white `mul` a))
 
-def foldl' [n] 'a 'b (f: Option a -> b -> Option a) (acc: Option a) (xs: [n]b): Option a =
-  if n == 0
-  then #none
-  else foldl f acc xs
-
-def ray_colour (scene: []Hittable) (ray: Ray): Pixel =
+def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel) =
   let keep_closer l r =
     match (l, r)
     case (#some l', #some r') -> #some (if l'.t <= r'.t then l' else r')
     case (#some _, #none)     -> l
     case (#none, #some _)     -> r
     case (#none, #none)       -> #none
-  in match foldl' (\acc h -> ray_intersection (interval 0.01 f32.inf) ray h |> keep_closer acc)
-                  #none
-                  scene
-     case #some hit -> ((hit.normal `add` one) `div` 2) |> to_colour
-     case #none -> sky ray
+  let ray_colour' rng_l ray l =
+    match foldl (\acc h -> ray_intersection (interval 0.01 f32.inf) ray h |> keep_closer acc)
+                 #none
+                 scene
+     case #some hit ->
+        let (rng_l', dir) =
+          second (hit.normal `add`) (random_unit_vec3 rng_l)
+        let ray' = { origin = hit.pos, dir }
+        in (rng_l', ray', true, l)
+     case #none ->
+       (rng, ray, false, l)
+  let (rng', final_ray, stuck, loops) =
+    loop (rng, ray, continue, loops) = (rng, ray, true, -1)
+    while continue && loops < 10
+    do ray_colour' rng ray (loops + 1)
+  let final_colour =
+    if stuck
+    then black
+    else (sky final_ray `div` f32.i32 (1 << loops)) |> to_colour
+  in (rng', final_colour)
 
 -- | 0..1 → -1..1
 def rescale (x: f32): f32 = x * 2 - 1
@@ -87,15 +97,15 @@ def fire_ray fovy x y: Ray =
   in { origin, dir }
 
 def trace (rng: RngState) (scene: []Hittable) (fovy: f32) (x: f32) (y: f32): (RngState, Pixel) =
-  (rng, fire_ray fovy x y |> ray_colour scene)
+  fire_ray fovy x y |> ray_colour rng scene
 
 def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i64) (x: i64) (y: i64): Pixel =
   let fovy = f32.i64 w / f32.i64 h
-  let x = f32.i64 x
-  let y = f32.i64 y
-  let w' = f32.i64 w
-  let h' = f32.i64 h
-  let s = f32.i64 samples
+  let x    = f32.i64 x
+  let y    = f32.i64 y
+  let w'   = f32.i64 w
+  let h'   = f32.i64 h
+  let s    = f32.i64 samples
 
   let remap v = (f32.u32 v) / (f32.u32 Rng.max) - 0.5
 
@@ -103,12 +113,12 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
     { r = r1 + r2, g = g1 + g2, b = b1 + b2 }
 
   let draw rng =
-    let (rng', dx) = Rng.rand rng
-    let (rng'', dy) = Rng.rand rng'
-    let x = (x + remap dx) / w'
-    let y = (y + remap dy) / h'
-    let (rng''', new_col) = trace rng'' scene fovy x y
-    in (rng''', new_col)
+    let (rng, dx)      = Rng.rand rng
+    let (rng, dy)      = Rng.rand rng
+    let x              = (x + remap dx) / w'
+    let y              = (y + remap dy) / h'
+    let (rng, new_col) = trace rng scene fovy x y
+    in (rng, new_col)
 
   in iota (samples - 1)
      |> foldl (\(rng, acc_col) _ ->

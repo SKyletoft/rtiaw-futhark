@@ -50,4 +50,5 @@ def unit_vector (v: Vec3): Vec3 =
 
 def origin: Vec3 = { x = 0, y = 0, z = 0 }
 
-def one: Vec3 = { x = 1, y = 1, z = 1 }
+def one: Vec3      = { x = 1, y = 1, z = 1 }
+def sky_blue: Vec3 = { x = 0.5, y = 0.7, z = 1.0 }

@@ -24,3 +24,14 @@ def random_vec3_in (rng: RngState) (inv: Interval): (RngState, Vec3) =
   let (r2, y) = random_f32_in r1 inv
   let (r3, z) = random_f32_in r2 inv
   in (r3, { x, y, z })
+
+def random_unit_vec3 (rng: RngState): (RngState, Vec3) =
+  (loop (rng, vec) = random_vec3_in rng (interval (-1) 1)
+   while length_squared vec > 1f32
+   do random_vec3 rng
+  ) |> second unit_vector
+
+def random_unit_vec3_in_hemisphere (rng: RngState) (normal: Vec3): (RngState, Vec3) =
+  random_unit_vec3 rng |> second (\v -> if (v `dot` normal) > 0
+					then v
+					else neg v)

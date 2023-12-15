@@ -3,6 +3,7 @@ type Colour = {h: f32, s: f32, v: f32}
 
 def red: Pixel = {r = 1, g = 0, b = 0}
 def black: Pixel = {r = 0, g = 0, b = 0}
+def white: Pixel = {r = 1, g = 1, b = 1}
 
 -- According to chatgpt
 def hsv_to_rgb(colour: Colour): Pixel =
