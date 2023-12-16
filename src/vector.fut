@@ -18,6 +18,12 @@ def mul (lhs: Vec3) (rhs: f32): Vec3 = {
     z = lhs.z * rhs
   }
 
+def mul_elem (lhs: Vec3) (rhs: Vec3): Vec3 = {
+    x = lhs.x * rhs.x,
+    y = lhs.y * rhs.y,
+    z = lhs.z * rhs.z
+  }
+
 def div (lhs: Vec3) (rhs: f32): Vec3 = {
     x = lhs.x / rhs,
     y = lhs.y / rhs,
@@ -29,7 +35,7 @@ def neg (v: Vec3): Vec3 = {
     y = -v.y,
     z = -v.z
   }
-  
+
 def length_squared (v: Vec3): f32 =
   v.x * v.x + v.y * v.y + v.z * v.z
 
@@ -45,8 +51,17 @@ def cross (u: Vec3) (v: Vec3): Vec3 = {
     z = u.x * v.y - u.y * v.x
   }
 
+def near_zero (v: Vec3): bool =
+  let epsilon = 1e-8
+  in (f32.abs v.x) < epsilon
+     && (f32.abs v.y) < epsilon
+     && (f32.abs v.z) < epsilon
+
 def unit_vector (v: Vec3): Vec3 =
   v `div` length v
+
+def reflect (v: Vec3) (normal: Vec3): Vec3 =
+  v `sub` (normal `mul` ((v `dot` normal) * 2))
 
 def origin: Vec3 = { x = 0, y = 0, z = 0 }
 

@@ -5,30 +5,39 @@ import "tuple"
 import "interval"
 import "random"
 
-type Metal    = {}
-type Diffuse  = { albedo: Pixel }
-type Material = #metal Metal | #diffuse Diffuse
+type Metal    = { albedo: Vec3, roughness: f32 }
+type Diffuse  = { albedo: Vec3 }
+type Material
+  = #metal Metal
+  | #diffuse Diffuse
 
 type Ray       = { origin: Vec3, dir: Vec3 }
 type Sphere    = { pos: Vec3, radius: f32, mat: Material }
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Material }
 type Hittable  = #sphere Sphere
 
-def scatter_metal (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Metal): (RngState, Ray) =
-  let (rng', dir) =
-    second (hr.normal `add`) (random_unit_vec3 rng)
+def scatter_diffuse (rng: RngState) (_: Ray) (hr: HitRecord) (mat: Diffuse): (RngState, Option (Ray, Vec3)) =
+  let (rng', rng_offset) = random_unit_vec3 rng
+  let dir_cand = rng_offset `add` hr.normal
+  let dir = if near_zero dir_cand
+	    then hr.normal
+	    else dir_cand
   let ray' = { origin = hr.pos, dir }
-  in (rng', ray')
+  let col = mat.albedo
+  in (rng', #some (ray', col))
 
-def scatter_diffuse (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Diffuse): (RngState, Ray) =
-  let (rng', dir) =
-    second (hr.normal `add`) (random_unit_vec3 rng)
+def scatter_metal (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Metal): (RngState, Option (Ray, Vec3)) =
+  let (rng', rng_offset) = random_unit_vec3 rng
+  let reflected = reflect (unit_vector ray.dir) hr.normal
+  let dir = reflected `add` (rng_offset `mul` mat.roughness)
   let ray' = { origin = hr.pos, dir }
-  in (rng', ray')
+  in if (dir `dot` hr.normal) > 0
+     then (rng', #some (ray', mat.albedo))
+     else (rng', #none)
 
-def scatter (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Material): (RngState, Ray) =
+def scatter (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Material): (RngState, Option (Ray, Vec3)) =
   match mat
-  case #metal m -> scatter_metal rng ray hr m
+  case #metal m   -> scatter_metal rng ray hr m
   case #diffuse m -> scatter_diffuse rng ray hr m
 
 def to_colour ({x, y, z}: Vec3): Pixel =
@@ -65,10 +74,10 @@ def ray_sphere_hit (ray: Ray) (sphere: Sphere) (t: Interval): Option HitRecord =
 
   in if disc < 0 then #none
      else if !(t `surrounds` root)
-          then if !(t `surrounds` root')
-               then #none
-               else #some (hit_record ray sphere root')
-          else #some (hit_record ray sphere root)
+	  then if !(t `surrounds` root')
+	       then #none
+	       else #some (hit_record ray sphere root')
+	  else #some (hit_record ray sphere root)
 
 def ray_intersection (t: Interval) (ray: Ray) (hittable: Hittable): Option HitRecord =
   match hittable
@@ -87,23 +96,28 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
     case (#some _, #none)     -> l
     case (#none, #some _)     -> r
     case (#none, #none)       -> #none
+
   let ray_colour' rng_l ray l =
     match foldl (\acc h -> ray_intersection (interval 0.01 f32.inf) ray h |> keep_closer acc)
-                 #none
-                 scene
+		 #none
+		 scene
     case #some hit ->
-      let (rng_l', ray') = scatter rng_l ray hit hit.mat
-      in (rng_l', ray', true, l)
+      (match scatter rng_l ray hit hit.mat
+      case (rng_l', #some (ray', col')) -> (rng_l', ray', true, col', l)
+      case (rng_l', #none)              -> (rng_l', ray, false, black', l))
     case #none ->
-      (rng, ray, false, l)
-  let (rng', final_ray, stuck, loops) =
-    loop (rng, ray, continue, loops) = (rng, ray, true, -1)
+      (rng, ray, false, sky ray, l)
+
+  let (rng', _, _, colour, loops) =
+    loop (rng, ray, continue, colour, loops) = (rng, ray, true, one, -1f32)
     while continue && loops < 10
-    do ray_colour' rng ray (loops + 1)
+    do let (rng, ray, continue, colour', loops) = ray_colour' rng ray (loops + 1f32)
+       let colour'' = colour `mul_elem` colour'
+       in (rng, ray, continue, colour'', loops)
+
   let final_colour =
-    if stuck
-    then black
-    else (sky final_ray `div` f32.i32 (1 << loops)) |> to_colour
+      (colour `mul` (0.7 ** loops)) |> to_colour
+
   in (rng', final_colour)
 
 -- | 0..1 → -1..1
@@ -141,7 +155,7 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
 
   in iota (samples - 1)
      |> foldl (\(rng, acc_col) _ ->
-                 let (rng', new_col) = draw rng
-                 in (rng', acc_col `combine` new_col))
-              (draw rng)
+		 let (rng', new_col) = draw rng
+		 in (rng', acc_col `combine` new_col))
+	      (draw rng)
      |> (\(_, {r, g, b}) -> { r = r / s, g = g / s, b = b / s })
