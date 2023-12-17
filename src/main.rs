@@ -36,14 +36,16 @@ fn with_futhark() -> Result<Vec<Colour>, fut::Error> {
 	let height = HEIGHT as _;
 	let width = WIDTH as _;
 
+	let f = |x: f32| (x.sqrt() * 255.9999) as u8;
+
 	let res = ctx
 		.calc(width, height)?
 		.get()?
 		.chunks_exact(3)
 		.map(|arr| Colour {
-			red: arr[0],
-			green: arr[1],
-			blue: arr[2],
+			red: f(arr[0]),
+			green: f(arr[1]),
+			blue: f(arr[2]),
 		})
 		.collect();
 

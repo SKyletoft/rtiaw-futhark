@@ -4,15 +4,9 @@ import "colour"
 import "random"
 
 -- | Flatten a pixel to an array
-def pixel_to_arr ({r, g, b}: Pixel): [3]u8 =
-  let f x =
-    x
-    |> f32.sqrt
-    |> (* 255.9999)
-    |> u8.f32
-  in [f r, f g, f b]
+def pixel_to_arr ({r, g, b}: Pixel): [3]f32 = [r, g, b]
 
-entry calc (w: i64) (h: i64): [h * w * 3]u8 =
+entry calc (w: i64) (h: i64): [h * w * 3]f32 =
   let circle  = { pos = { x =  0, y =      0, z = -1 }, radius = 0.5, mat = #diffuse { albedo = red'   } }
   let circle2 = { pos = { x = -4, y =      2, z = -8 }, radius =   2, mat = #metal   { albedo = white', roughness = 0.3 } }
   let circle3 = { pos = { x =  0, y = -100.5, z = -1 }, radius = 100, mat = #diffuse { albedo = green' } }
