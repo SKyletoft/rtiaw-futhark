@@ -24,7 +24,7 @@ entry calc (w: i64) (h: i64): [h * w * 3]u8 =
 	      ]
   let rng     = Rng.rng_from_seed [981, 345, 234, 897, 82734, 2346]
   let rngs    = Rng.split_rng (w * h) rng
-  let samples = 1000000
+  let samples = 4096
 
   let pixel_coords: [h * w](i64, i64) =
     let row =

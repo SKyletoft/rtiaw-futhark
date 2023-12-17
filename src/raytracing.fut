@@ -155,15 +155,15 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
 
     let (_, {r,g,b})
 
-     = iota (samples - 1)
-      |> foldl (\(rng, acc_col) _ ->
-		 let (rng', new_col) = draw rng
-		 in (rng', acc_col `combine` new_col))
-	      (draw rng)
+     -- = iota (samples - 1)
+      --  |> foldl (\(rng, acc_col) _ ->
+		 -- let (rng', new_col) = draw rng
+		 -- in (rng', acc_col `combine` new_col))
+	      -- (draw rng)
 
-    -- = loop (rng, acc_col) = draw rng
-     -- for x < (samples - 1)
-     -- do let (rng', new_col) = draw rng
-	-- in (rng', acc_col `combine` new_col)
+    = loop (rng, acc_col) = draw rng
+     for x < (samples - 1)
+     do let (rng', new_col) = draw rng
+	in (rng', acc_col `combine` new_col)
 
     in { r = r / s, g = g / s, b = b / s }
