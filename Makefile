@@ -4,6 +4,9 @@ run-debug: debug
 run-release: release
 	target/release/rust-futhark-test > image.ppm
 
+bench: release
+	hyperfine "target/release/rust-futhark-test > /dev/null"
+
 debug: lib/github.com/diku-dk/cpprandom/random.fut
 	cargo build --locked --offline
 	patchelf --replace-needed libOpenCL.so.1 $$LIBOPENCL_BIN/lib/libOpenCL.so.1 target/debug/rust-futhark-test
