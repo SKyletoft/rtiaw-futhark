@@ -63,6 +63,12 @@ def unit_vector (v: Vec3): Vec3 =
 def reflect (v: Vec3) (normal: Vec3): Vec3 =
   v `sub` (normal `mul` ((v `dot` normal) * 2))
 
+def refract (uv: Vec3) (n: Vec3) (ior: f32): Vec3 =
+  let cos_theta = f32.min ((neg uv) `dot` n) 1.0
+  let r_out_perpendicular = (uv `add` (n `mul` cos_theta)) `mul` ior
+  let r_out_parallel = n `mul` -((1.0 - length_squared r_out_perpendicular) |> f32.abs |> f32.sqrt)
+  in r_out_perpendicular `add` r_out_parallel
+
 def origin: Vec3 = { x = 0, y = 0, z = 0 }
 
 def one: Vec3      = { x = 1, y = 1, z = 1 }
