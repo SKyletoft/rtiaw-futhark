@@ -7,9 +7,11 @@ import "random"
 
 type Metal    = { albedo: Vec3, roughness: f32 }
 type Diffuse  = { albedo: Vec3 }
+type Glass    = { ior: f32 }
 type Material
   = #metal Metal
   | #diffuse Diffuse
+  | #glass Glass
 
 type Ray       = { origin: Vec3, dir: Vec3 }
 type Sphere    = { pos: Vec3, radius: f32, mat: Material }
@@ -35,10 +37,22 @@ def scatter_metal (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Metal): (RngS
      then (rng', #some (ray', mat.albedo))
      else (rng', #none)
 
+def scatter_glass (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Glass): (RngState, Option (Ray, Vec3)) =
+  let col = white'
+  let refr_ratio =
+    if hr.front_face
+    then 1 / mat.ior
+    else mat.ior
+  let unit_dir = unit_vector ray.dir
+  let refracted = refract unit_dir hr.normal refr_ratio
+  let ray' = { origin = hr.pos, dir = refracted }
+  in (rng, #some (ray', col))
+
 def scatter (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Material): (RngState, Option (Ray, Vec3)) =
   match mat
   case #metal m   -> scatter_metal rng ray hr m
   case #diffuse m -> scatter_diffuse rng ray hr m
+  case #glass m   -> scatter_glass rng ray hr m
 
 def to_colour ({x, y, z}: Vec3): Pixel =
   { r = x, g = y, b = z }
