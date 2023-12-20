@@ -129,10 +129,7 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
        let colour'' = colour `mul_elem` colour'
        in (rng, ray, continue, colour'', loops)
 
-  let final_colour =
-      (colour `mul` (0.7 ** loops)) |> to_colour
-
-  in (rng', final_colour)
+  in (rng', to_colour colour)
 
 -- | 0..1 → -1..1
 def rescale (x: f32): f32 = x * 2 - 1
