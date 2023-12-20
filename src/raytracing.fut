@@ -164,10 +164,10 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
     let (rng, new_col) = trace rng scene fovy x y
     in (rng, new_col)
 
-  let (_, {r,g,b})
-    = loop (rng, acc_col) = draw rng
-      for x < (samples - 1)
-      do let (rng', new_col) = draw rng
-	 in (rng', acc_col `combine` new_col)
+  let (_, {r,g,b}) =
+    loop (rng, acc_col) = draw rng
+    for x < (samples - 1)
+    do let (rng', new_col) = draw rng
+       in (rng', acc_col `combine` new_col)
 
-    in { r = r / s, g = g / s, b = b / s }
+  in { r = r / s, g = g / s, b = b / s }
