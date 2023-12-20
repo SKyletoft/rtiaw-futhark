@@ -5,7 +5,7 @@ run-release: release
 	target/release/rust-futhark-test > image.ppm
 
 bench: release
-	hyperfine "target/release/rust-futhark-test > /dev/null"
+	hyperfine -w30 -m50 "target/release/rust-futhark-test > /dev/null"
 
 debug: src/fut.rs lib/github.com/diku-dk/cpprandom/random.fut
 	cargo build --locked --offline
