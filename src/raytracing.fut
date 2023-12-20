@@ -13,40 +13,57 @@ type Material
   | #diffuse Diffuse
   | #glass Glass
 
-type Ray       = { origin: Vec3, dir: Vec3 }
-type Sphere    = { pos: Vec3, radius: f32, mat: Material }
+type Sphere   = { pos: Vec3, radius: f32, mat: Material }
+type Hittable = #sphere Sphere
+
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Material }
-type Hittable  = #sphere Sphere
+type Ray       = { origin: Vec3, dir: Vec3 }
 
 def scatter_diffuse (rng: RngState) (_: Ray) (hr: HitRecord) (mat: Diffuse): (RngState, Option (Ray, Vec3)) =
   let (rng', rng_offset) = random_unit_vec3 rng
-  let dir_cand = rng_offset `add` hr.normal
-  let dir = if near_zero dir_cand
-	    then hr.normal
-	    else dir_cand
+  let dir_cand           = rng_offset `add` hr.normal
+  let dir =
+    if near_zero dir_cand
+    then hr.normal
+    else dir_cand
   let ray' = { origin = hr.pos, dir }
   let col = mat.albedo
   in (rng', #some (ray', col))
 
 def scatter_metal (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Metal): (RngState, Option (Ray, Vec3)) =
   let (rng', rng_offset) = random_unit_vec3 rng
-  let reflected = reflect (unit_vector ray.dir) hr.normal
-  let dir = reflected `add` (rng_offset `mul` mat.roughness)
-  let ray' = { origin = hr.pos, dir }
+  let reflected          = reflect (unit_vector ray.dir) hr.normal
+  let dir                = reflected `add` (rng_offset `mul` mat.roughness)
+  let ray'               = { origin = hr.pos, dir }
   in if (dir `dot` hr.normal) > 0
      then (rng', #some (ray', mat.albedo))
      else (rng', #none)
 
 def scatter_glass (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Glass): (RngState, Option (Ray, Vec3)) =
-  let col = white'
+  let col = { x = 1, y = 1, z = 1 }
   let refr_ratio =
     if hr.front_face
     then 1 / mat.ior
     else mat.ior
-  let unit_dir = unit_vector ray.dir
-  let refracted = refract unit_dir hr.normal refr_ratio
-  let ray' = { origin = hr.pos, dir = refracted }
-  in (rng, #some (ray', col))
+
+  let unit_dir  = unit_vector ray.dir
+  let cos_theta = f32.min ((neg unit_dir) `dot` hr.normal) 1
+  let sin_theta = f32.sqrt (1 - cos_theta * cos_theta)
+
+  let cannot_refract = refr_ratio * sin_theta > 1
+  let reflectance =
+    let r0  = (1 - refr_ratio) / (1 + refr_ratio)
+    let r0' = r0 * r0
+    in r0' + (1 - r0') * ((1 - cos_theta) ** 5)
+  let (rng', refl_threshold) = random_f32 rng
+
+  let dir =
+    if (cannot_refract || reflectance > refl_threshold)
+    then reflect unit_dir hr.normal
+    else refract unit_dir hr.normal refr_ratio
+
+  let ray' = { origin = hr.pos, dir }
+  in (rng', #some (ray', col))
 
 def scatter (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Material): (RngState, Option (Ray, Vec3)) =
   match mat
@@ -88,10 +105,10 @@ def ray_sphere_hit (ray: Ray) (sphere: Sphere) (t: Interval): Option HitRecord =
 
   in if disc < 0 then #none
      else if !(t `surrounds` root)
-	  then if !(t `surrounds` root')
-	       then #none
-	       else #some (hit_record ray sphere root')
-	  else #some (hit_record ray sphere root)
+          then if !(t `surrounds` root')
+               then #none
+               else #some (hit_record ray sphere root')
+          else #some (hit_record ray sphere root)
 
 def ray_intersection (t: Interval) (ray: Ray) (hittable: Hittable): Option HitRecord =
   match hittable
@@ -113,8 +130,8 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
 
   let ray_colour' rng_l ray l =
     match foldl (\acc h -> ray_intersection (interval 0.01 f32.inf) ray h |> keep_closer acc)
-		 #none
-		 scene
+                 #none
+                 scene
     case #some hit ->
       (match scatter rng_l ray hit hit.mat
       case (rng_l', #some (ray', col')) -> (rng_l', ray', true, col', l)
