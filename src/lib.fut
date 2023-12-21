@@ -27,7 +27,7 @@ entry calc (w: i64) (h: i64): [h * w * 3]f32 =
   let rngs    = Rng.split_rng (w * h) rng
   let samples = 128
 
-  let camera = gen_camera origin { x = 0, y = 0, z = -1 }
+  let camera = gen_camera { x = -0.5, y = 0, z = 2 } { x = 0, y = 0, z = -1 }
 
   let pixel_coords: [h * w](i64, i64) =
     let row =
