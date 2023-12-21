@@ -16,6 +16,7 @@ type Material
 type Sphere   = { pos: Vec3, radius: f32, mat: Material }
 type Hittable = #sphere Sphere
 
+type Camera    = { from: Vec3, to: Vec3, focal_length: f32, u: Vec3, v: Vec3, w: Vec3 }
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Material }
 type Ray       = { origin: Vec3, dir: Vec3 }
 
@@ -151,16 +152,35 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
 -- | 0..1 → -1..1
 def rescale (x: f32): f32 = x * 2 - 1
 
-def fire_ray fovy x y: Ray =
-  let x   = fovy * rescale x
-  let y   = -rescale y
-  let dir = unit_vector { x, y, z = -1 }
+def gen_camera (from: Vec3) (to: Vec3): Camera =
+  let focal_length = -length (to `sub` from)
+  let w = unit_vector (from `sub` to)
+  let u = unit_vector ({ x = 0, y = 1, z = 0} `cross` w)
+  let v = w `cross` u
+  in { from
+     , to
+     , focal_length
+     , w
+     , u
+     , v
+     }
+
+def fire_ray (cam: Camera) fovy x y: Ray =
+  let x = fovy * rescale x
+  let y = -rescale y
+
+  let origin = cam.from
+  let dir =
+    (cam.w `mul` cam.focal_length)
+    `add` (cam.u `mul` x)
+    `add` (cam.v `mul` y)
+
   in { origin, dir }
 
-def trace (rng: RngState) (scene: []Hittable) (fovy: f32) (x: f32) (y: f32): (RngState, Pixel) =
-  fire_ray fovy x y |> ray_colour rng scene
+def trace (rng: RngState) (scene: []Hittable) (cam: Camera) (fovy: f32) (x: f32) (y: f32): (RngState, Pixel) =
+  fire_ray cam fovy x y |> ray_colour rng scene
 
-def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i64) (x: i64) (y: i64): Pixel =
+def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (cam: Camera) (w: i64) (h: i64) (x: i64) (y: i64): Pixel =
   let fovy = f32.i64 w / f32.i64 h
   let x    = f32.i64 x
   let y    = f32.i64 y
@@ -178,7 +198,7 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
     let (rng, dy)      = Rng.rand rng
     let x              = (x + remap dx) / w'
     let y              = (y + remap dy) / h'
-    let (rng, new_col) = trace rng scene fovy x y
+    let (rng, new_col) = trace rng scene cam fovy x y
     in (rng, new_col)
 
   let (_, {r,g,b}) =
