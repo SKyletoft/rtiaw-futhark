@@ -16,7 +16,7 @@ type Material
 type Sphere   = { pos: Vec3, radius: f32, mat: Material }
 type Hittable = #sphere Sphere
 
-type Camera    = { from: Vec3, to: Vec3, focal_length: f32, u: Vec3, v: Vec3, w: Vec3 }
+type Camera    = { from: Vec3, to: Vec3, u: Vec3, v: Vec3, w: Vec3 }
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Material }
 type Ray       = { origin: Vec3, dir: Vec3 }
 
@@ -159,8 +159,7 @@ def gen_camera (from: Vec3) (to: Vec3): Camera =
   let v = w `cross` u
   in { from
      , to
-     , focal_length
-     , w
+     , w = w `mul` focal_length
      , u
      , v
      }
@@ -171,7 +170,7 @@ def fire_ray (cam: Camera) fovy x y: Ray =
 
   let origin = cam.from
   let dir =
-    (cam.w `mul` cam.focal_length)
+    cam.w
     `add` (cam.u `mul` x)
     `add` (cam.v `mul` y)
 
