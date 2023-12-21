@@ -20,7 +20,7 @@ type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Mater
 type Ray       = { origin: Vec3, dir: Vec3 }
 
 def scatter_diffuse (rng: RngState) (_: Ray) (hr: HitRecord) (mat: Diffuse): (RngState, Option (Ray, Vec3)) =
-  let (rng', rng_offset) = random_unit_vec3 rng
+  let (rng, rng_offset) = random_unit_vec3 rng
   let dir_cand           = rng_offset `add` hr.normal
   let dir =
     if near_zero dir_cand
@@ -28,16 +28,16 @@ def scatter_diffuse (rng: RngState) (_: Ray) (hr: HitRecord) (mat: Diffuse): (Rn
     else dir_cand
   let ray' = { origin = hr.pos, dir }
   let col = mat.albedo
-  in (rng', #some (ray', col))
+  in (rng, #some (ray', col))
 
 def scatter_metal (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Metal): (RngState, Option (Ray, Vec3)) =
-  let (rng', rng_offset) = random_unit_vec3 rng
-  let reflected          = reflect (unit_vector ray.dir) hr.normal
-  let dir                = reflected `add` (rng_offset `mul` mat.roughness)
-  let ray'               = { origin = hr.pos, dir }
+  let (rng, rng_offset) = random_unit_vec3 rng
+  let reflected         = reflect (unit_vector ray.dir) hr.normal
+  let dir               = reflected `add` (rng_offset `mul` mat.roughness)
+  let ray'              = { origin = hr.pos, dir }
   in if (dir `dot` hr.normal) > 0
-     then (rng', #some (ray', mat.albedo))
-     else (rng', #none)
+     then (rng, #some (ray', mat.albedo))
+     else (rng, #none)
 
 def scatter_glass (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Glass): (RngState, Option (Ray, Vec3)) =
   let col = { x = 1, y = 1, z = 1 }
@@ -55,7 +55,7 @@ def scatter_glass (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Glass): (RngS
     let r0  = (1 - refr_ratio) / (1 + refr_ratio)
     let r0' = r0 * r0
     in r0' + (1 - r0') * ((1 - cos_theta) ** 5)
-  let (rng', refl_threshold) = random_f32 rng
+  let (rng, refl_threshold) = random_f32 rng
 
   let dir =
     if (cannot_refract || reflectance > refl_threshold)
@@ -63,7 +63,7 @@ def scatter_glass (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Glass): (RngS
     else refract unit_dir hr.normal refr_ratio
 
   let ray' = { origin = hr.pos, dir }
-  in (rng', #some (ray', col))
+  in (rng, #some (ray', col))
 
 def scatter (rng: RngState) (ray: Ray) (hr: HitRecord) (mat: Material): (RngState, Option (Ray, Vec3)) =
   match mat
@@ -139,7 +139,7 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
     case #none ->
       (rng, ray, false, sky ray, l)
 
-  let (rng', _, _, colour, loops) =
+  let (rng', _, _, colour, _) =
     loop (rng, ray, continue, colour, loops) = (rng, ray, true, one, -1f32)
     while continue && loops < 10
     do let (rng, ray, continue, colour', loops) = ray_colour' rng ray (loops + 1f32)
@@ -183,7 +183,7 @@ def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (w: i64) (h: i
 
   let (_, {r,g,b}) =
     loop (rng, acc_col) = draw rng
-    for x < (samples - 1)
+    for _i < (samples - 1)
     do let (rng', new_col) = draw rng
        in (rng', acc_col `combine` new_col)
 
