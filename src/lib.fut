@@ -38,8 +38,9 @@ entry calc (w: i64) (h: i64): [h * w * 3]f32 =
       |> map (\(i, js) -> map (\j -> (j, i)) js)
       |> flatten
 
-  let f (x: i64) (y: i64): Pixel =
+  let trace_pixel ((x, y): (i64, i64)): [3]f32 =
     let idx = y + x * h
     in draw_pixel samples rngs[idx] scene w h x y
+       |> pixel_to_arr
 
-  in pixel_coords |> map (\(x, y) -> f x y |> pixel_to_arr) |> flatten
+  in pixel_coords |> map trace_pixel |> flatten
