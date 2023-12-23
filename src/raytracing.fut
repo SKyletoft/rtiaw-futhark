@@ -152,14 +152,14 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
 -- | 0..1 → -1..1
 def rescale (x: f32): f32 = x * 2 - 1
 
-def gen_camera (from: Vec3) (to: Vec3): Camera =
+def gen_camera (from: Vec3) (to: Vec3) (defocus: f32): Camera =
   let focal_length = -length (to `sub` from)
   let w = unit_vector (from `sub` to)
   let u = unit_vector ({ x = 0, y = 1, z = 0} `cross` w)
   let v = w `cross` u
   in { from
      , to
-     , defocus = 0.05
+     , defocus
      , focus_dist = focal_length
      , w = w `mul` focal_length
      , u
