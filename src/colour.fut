@@ -1,4 +1,4 @@
-type Pixel = {r: f32, g: f32, b: f32}
+type Pixel  = {r: f32, g: f32, b: f32}
 type Colour = {h: f32, s: f32, v: f32}
 
 def red: Pixel	 = {r = 1, g = 0, b = 0}

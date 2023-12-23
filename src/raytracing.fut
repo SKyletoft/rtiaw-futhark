@@ -135,8 +135,8 @@ def ray_colour (rng: RngState) (scene: []Hittable) (ray: Ray): (RngState, Pixel)
                  scene
     case #some hit ->
       (match scatter rng_l ray hit hit.mat
-      case (rng_l', #some (ray', col')) -> (rng_l', ray', true, col', l)
-      case (rng_l', #none)              -> (rng_l', ray, false, black', l))
+       case (rng_l', #some (ray', col')) -> (rng_l', ray', true, col', l)
+       case (rng_l', #none)              -> (rng_l', ray, false, black', l))
     case #none ->
       (rng, ray, false, sky ray, l)
 
