@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::Write;
 
 pub mod fut;
 
@@ -24,9 +25,12 @@ impl fmt::Display for Colour {
 fn main() {
 	let res = with_futhark().unwrap();
 	assert_eq!(res.len(), HEIGHT * WIDTH);
-	println!("P3\n{WIDTH} {HEIGHT}\n255");
+
+	let stdout = std::io::stdout();
+	let mut stdout = stdout.lock();
+	writeln!(&mut stdout, "P3\n{WIDTH} {HEIGHT}\n255").unwrap();
 	for line in res.into_iter() {
-		println!("{line}");
+		writeln!(&mut stdout, "{line}").unwrap();
 	}
 }
 
