@@ -16,7 +16,7 @@ type Material
 type Sphere   = { pos: Vec3, radius: f32, mat: Material }
 type Hittable = #sphere Sphere
 
-type Camera    = { from: Vec3, to: Vec3, u: Vec3, v: Vec3, w: Vec3 }
+type Camera    = { from: Vec3, to: Vec3, defocus: f32, focus_dist: f32, u: Vec3, v: Vec3, w: Vec3 }
 type HitRecord = { pos: Vec3, normal: Vec3, t: f32, front_face: bool, mat: Material }
 type Ray       = { origin: Vec3, dir: Vec3 }
 
@@ -159,25 +159,34 @@ def gen_camera (from: Vec3) (to: Vec3): Camera =
   let v = w `cross` u
   in { from
      , to
+     , defocus = 0.1
+     , focus_dist = focal_length
      , w = w `mul` focal_length
      , u
      , v
      }
 
-def fire_ray (cam: Camera) fovy x y: Ray =
+def fire_ray (rng: RngState) (cam: Camera) fovy x y: (RngState, Ray) =
   let x = fovy * rescale x
   let y = -rescale y
 
   let origin = cam.from
-  let dir =
-    cam.w
-    `add` (cam.u `mul` x)
-    `add` (cam.v `mul` y)
+  let dir = unit_vector (cam.w `add` (cam.u `mul` x) `add` (cam.v `mul` y))
 
-  in { origin, dir }
+  let straight_ray = { origin, dir }
+  let target = straight_ray `at` -cam.focus_dist
+
+  let (rng, offset) = random_disk_vec3 rng
+  let offset' = offset `mul` cam.defocus
+  let origin' = origin `add` (cam.u `mul` offset'.x) `add` (cam.v `mul` offset'.y)
+  let dir' = unit_vector (target `sub` origin')
+
+  let blurry_ray = { origin = origin', dir = dir' }
+  in (rng, blurry_ray)
 
 def trace (rng: RngState) (scene: []Hittable) (cam: Camera) (fovy: f32) (x: f32) (y: f32): (RngState, Pixel) =
-  fire_ray cam fovy x y |> ray_colour rng scene
+  let (rng, ray') = fire_ray rng cam fovy x y
+  in ray_colour rng scene ray'
 
 def draw_pixel (samples: i64) (rng: RngState) (scene: []Hittable) (cam: Camera) (w: i64) (h: i64) (x: i64) (y: i64): Pixel =
   let fovy = f32.i64 w / f32.i64 h
