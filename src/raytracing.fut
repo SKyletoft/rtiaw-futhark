@@ -159,7 +159,7 @@ def gen_camera (from: Vec3) (to: Vec3): Camera =
   let v = w `cross` u
   in { from
      , to
-     , defocus = 0.1
+     , defocus = 0.05
      , focus_dist = focal_length
      , w = w `mul` focal_length
      , u

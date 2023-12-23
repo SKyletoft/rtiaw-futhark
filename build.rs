@@ -5,6 +5,7 @@ fn main() {
 	println!("cargo:rerun-if-changed=src/option.fut");
 	println!("cargo:rerun-if-changed=src/random.fut");
 	println!("cargo:rerun-if-changed=src/raytracing.fut");
+	println!("cargo:rerun-if-changed=src/scenes.fut");
 	println!("cargo:rerun-if-changed=src/tuple.fut");
 	println!("cargo:rerun-if-changed=src/vector.fut");
 
